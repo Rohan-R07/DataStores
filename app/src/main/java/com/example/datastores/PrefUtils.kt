@@ -3,6 +3,7 @@ package com.example.datastores
 import android.content.Context
 import android.preference.PreferenceDataStore
 import androidx.datastore.dataStore
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -35,7 +36,29 @@ class PrefUtils(val contex: Context) {
                     .mapValues { it.value.toString() }
             }
     }
-    //Dark Mode
 
+
+
+}
+
+
+class PrefUtilsDark(val contex: Context){
+
+    val Context.darkModePref by preferencesDataStore("darkMode")
+    //Dark Mode
+    companion object {
+        val darkModeKey = booleanPreferencesKey("DARK_MODE")
+    }
+    suspend fun setDarkMode(value: Boolean){
+        contex.darkModePref.edit {
+            it[darkModeKey] = value
+        }
+    }
+
+    fun readDarkMode(): Flow<Boolean>{
+        return contex.darkModePref.data.map {
+            it[darkModeKey] ?: false
+        }
+    }
 
 }

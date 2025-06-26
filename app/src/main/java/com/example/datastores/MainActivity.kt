@@ -2,19 +2,24 @@ package com.example.datastores
 
 import android.content.Context
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -29,6 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.datastores.ui.theme.DataStoresTheme
 import kotlinx.coroutines.launch
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import com.example.datastores.ui.theme.DarkColorScheme
+import com.example.datastores.ui.theme.LightColorScheme
+
 
 class MainActivity : ComponentActivity() {
 
@@ -36,13 +46,20 @@ class MainActivity : ComponentActivity() {
         PrefUtils(applicationContext)
     }
 
+    val darkPref = lazy {
+        PrefUtilsDark(applicationContext)
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             DataStoresTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    DataStoreRepresentation(preference.value, innerPadding, applicationContext)
+                    DataStoreRepresentation(
+                        preference = preference.value,
+                        darkThemPref = darkPref.value ,
+                        innerPadding,
+                        contex = applicationContext)
                 }
             }
         }
@@ -51,7 +68,12 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun DataStoreRepresentation(preference: PrefUtils, innnerPaddingValues: PaddingValues, contex: Context) {
+fun DataStoreRepresentation(
+    preference: PrefUtils,
+    darkThemPref : PrefUtilsDark,
+    innnerPaddingValues: PaddingValues,
+    contex: Context
+) {
 
     val courutionScope = rememberCoroutineScope()
 
@@ -110,24 +132,18 @@ fun DataStoreRepresentation(preference: PrefUtils, innnerPaddingValues: PaddingV
         Spacer(Modifier.padding(10.dp))
 
         var fetchText by remember { mutableStateOf("") }
-        Button(
-            onClick = {
-                courutionScope.launch {
-
-                    fetchText = preference.getData(fetchKey).toString()
-                }
-
-            }
-        ) {
-            Text("Fetch Data")
-        }
+//
 
         Text(fetchText)
 
         val listings by preference.getAllPreferences().collectAsState(initial = emptyMap())
 
+
+        val isDarkTheme by darkThemPref.readDarkMode().collectAsState(initial = false)
         LazyColumn(
-            modifier = Modifier,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -138,6 +154,22 @@ fun DataStoreRepresentation(preference: PrefUtils, innnerPaddingValues: PaddingV
 
         }
 
-    }
 
+        Switch(
+            checked = isDarkTheme,
+            onCheckedChange = {
+                courutionScope.launch {
+                    darkThemPref.setDarkMode(it)
+                }
+            }
+        )
+
+        if (isDarkTheme){
+
+        }
+        else{
+            LightColorScheme
+        }
+
+    }
 }
