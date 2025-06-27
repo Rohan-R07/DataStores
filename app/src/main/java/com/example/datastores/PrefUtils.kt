@@ -37,27 +37,56 @@ class PrefUtils(val contex: Context) {
             }
     }
 
-
-
+    suspend fun deleteAllPref() {
+        contex.dataStore.edit {
+            it.clear()
+        }
+    }
 }
 
 
-class PrefUtilsDark(val contex: Context){
+class PrefUtilsDark(val contex: Context) {
 
     val Context.darkModePref by preferencesDataStore("darkMode")
+
     //Dark Mode
     companion object {
         val darkModeKey = booleanPreferencesKey("DARK_MODE")
     }
-    suspend fun setDarkMode(value: Boolean){
+
+    suspend fun setDarkMode(value: Boolean) {
         contex.darkModePref.edit {
             it[darkModeKey] = value
         }
     }
 
-    fun readDarkMode(): Flow<Boolean>{
+    fun readDarkMode(): Flow<Boolean> {
         return contex.darkModePref.data.map {
             it[darkModeKey] ?: false
+        }
+    }
+
+}
+
+
+class PrefUtlisLang(val contex: Context) {
+
+    val Context.darkModePref by preferencesDataStore("language")
+
+    //Dark Mode
+    companion object {
+        val languageKey = stringPreferencesKey("LANGUAGE")
+    }
+
+    suspend fun setLanguage(value: String) {
+        contex.darkModePref.edit {
+            it[languageKey] = value
+        }
+    }
+
+    fun readLanguage(): Flow<String> {
+        return contex.darkModePref.data.map {
+            it[languageKey] ?: "Select Language"
         }
     }
 
