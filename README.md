@@ -46,3 +46,12 @@ To run this app:
 
 ---
 
+## 📚 Learning Outcomes
+
+This app helps you understand:
+
+- How to **use DataStore** in Compose
+- How to **observe flows** and use them in composables
+- How to display preferences using **LazyColumn**
+- How to build simple but functional UI using Material3
+
