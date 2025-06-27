@@ -5,10 +5,12 @@ import android.hardware.camera2.params.BlackLevelPattern
 import android.os.Build
 import android.os.Bundle
 import android.view.RoundedCorner
+import android.widget.GridLayout
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,19 +18,26 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -51,42 +60,43 @@ import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.Red
 import androidx.compose.ui.graphics.Color.Companion.White
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import com.example.datastores.ui.theme.DataStoresTheme
 import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.sp
 import androidx.datastore.dataStore
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.example.datastores.ui.theme.Purple80
 import kotlinx.coroutines.CoroutineScope
 
 
 class MainActivity : ComponentActivity() {
 
-    val preference = lazy {
-        PrefUtils(applicationContext)
-    }
-
-    val darkPref = lazy {
-        PrefUtilsDark(applicationContext)
-    }
-    val preferenceLanguage = lazy {
-        PrefUtlisLang(applicationContext)
-    }
-
-
+    val viewModel by viewModels<PrefViewModel>(
+        factoryProducer = {
+            object : ViewModelProvider.Factory{
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return PrefViewModel(applicationContext) as T
+                }
+            }
+        }
+    )
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             DataStoresTheme {
-                val isDarkTheme by darkPref.value.readDarkMode().collectAsState(initial = false)
+                val isDarkTheme by viewModel.readDarkMode().collectAsState(initial = false)
                 var backGroundColor by remember {
-                    mutableStateOf(Color.White)
+                    mutableStateOf(White)
                 }
-                var textColor by remember { mutableStateOf(Color.Black) }
+                var textColor by remember { mutableStateOf(Black) }
                 val courutionScope = rememberCoroutineScope()
 
-                val language by preferenceLanguage.value.readLanguage()
+                val language by viewModel.readLanguage()
                     .collectAsState(initial = "Select Langauge")
                 Scaffold(
                     modifier = Modifier
@@ -106,7 +116,7 @@ class MainActivity : ComponentActivity() {
                                     checked = isDarkTheme,
                                     onCheckedChange = {
                                         courutionScope.launch {
-                                            darkPref.value.setDarkMode(it)
+                                            viewModel.setDarkMode(it)
                                         }
                                     }
                                 )
@@ -123,17 +133,16 @@ class MainActivity : ComponentActivity() {
                         textColor = Black
                     }
                     DataStoreRepresentation(
-                        preference = preference.value, courutionScope,
-                        innerPadding,
-                        backGroundColor,
-                        textColor,
-                        preferenceLanguage.value,
-                        language
+                        preferences = viewModel,
+                        courution = courutionScope,
+                        innnerPaddingValues = innerPadding,
+                        colour = backGroundColor,
+                        textColor = textColor,
+                        langauge =language
                     )
 
 
                 }
-
 
             }
         }
@@ -144,12 +153,11 @@ class MainActivity : ComponentActivity() {
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun DataStoreRepresentation(
-    preference: PrefUtils,
+    preferences: PrefViewModel,
     courution: CoroutineScope,
     innnerPaddingValues: PaddingValues,
     colour: Color,
     textColor: Color,
-    prefUtlisLang: PrefUtlisLang,
     langauge: String
 
 ) {
@@ -165,9 +173,6 @@ fun DataStoreRepresentation(
 
         var key by remember { mutableStateOf("") }
         var value by remember { mutableStateOf("") }
-
-
-//        var fetchKey by remember { mutableStateOf("") }
 
         Spacer(Modifier.padding(20.dp))
 
@@ -190,23 +195,28 @@ fun DataStoreRepresentation(
         Button(
             onClick = {
                 courution.launch {
-                    preference.saveData(key, value)
+                    preferences.saveData(key, value)
                 }
-            }
+            },
+            modifier = Modifier
+                .padding(top = 30.dp)
         ) {
             Text("Save Data")
         }
 
         Spacer(Modifier.padding(20.dp))
 
-        Spacer(Modifier.padding(10.dp))
-
         var fetchText by remember { mutableStateOf("") }
 
         Text(fetchText, color = textColor)
 
-        val listings by preference.getAllPreferences().collectAsState(initial = emptyMap())
+        val listings by preferences.getAllPreferences().collectAsState(initial = emptyMap())
 
+        Text(
+            text = "Data List",
+            fontSize = 20.sp,
+            color = textColor
+        )
 
         LazyColumn(
             modifier = Modifier
@@ -219,10 +229,13 @@ fun DataStoreRepresentation(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             items(listings.entries.toList()) { items ->
-                Text(items.value.toString(), color = textColor)
+                Row {
+
+                    Text("KEY: ${items.key.toString()}", color = textColor)
+                    Spacer(Modifier.padding(start = 10.dp))
+                    Text("VALUE: ${items.value.toString()}", color = textColor)
+                }
             }
-
-
         }
 
 
@@ -230,7 +243,7 @@ fun DataStoreRepresentation(
         Button(
             onClick = {
                 courution.launch {
-                    preference.deleteAllPref()
+                    preferences.deleteAllPref()
                 }
             }
         ) {
@@ -240,11 +253,26 @@ fun DataStoreRepresentation(
         var dropDownMenu by remember { mutableStateOf(false) }
         Box(
             modifier = Modifier
-                .wrapContentSize(Alignment.TopStart)
+                .height(40.dp)
+                .width(200.dp)
+                .padding(top = 10.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .clickable { dropDownMenu = true }
+                .background(Purple80),
+            contentAlignment = Alignment.Center
 
         ) {
-            Text(langauge, color = textColor)
+            Row {
+
+                Text(langauge, color = Black)
+                Spacer(Modifier.padding(start = 10.dp))
+                Icon(
+                    imageVector = if (dropDownMenu) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                    contentDescription = null,
+                    tint = Black
+                )
+            }
+
             DropdownMenu(
                 expanded = dropDownMenu,
                 onDismissRequest = { dropDownMenu = false },
@@ -259,8 +287,8 @@ fun DataStoreRepresentation(
                         },
                         onClick = {
                             courution.launch {
-
-                                prefUtlisLang.setLanguage(data.name)
+                                preferences.setLanguage(data.name)
+                                dropDownMenu = false
                             }
                         }
                     )
